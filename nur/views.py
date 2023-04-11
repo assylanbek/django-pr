@@ -1,6 +1,9 @@
 from django.http import HttpResponse, HttpResponseNotFound, Http404
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse_lazy
+from django.views.generic import ListView, DetailView, CreateView
 
+from .forms import *
 from .models import *
 
 menu = [{'title': "О сайте", 'url_name': 'about'},
@@ -9,22 +12,56 @@ menu = [{'title': "О сайте", 'url_name': 'about'},
         {'title': "Войти", 'url_name': 'login'}
 ]
 
-def index(request):
-    posts = Nur.objects.all()
+class NurHome(ListView):
+    model = Nur
+    template_name = 'nur/index.html'
+    context_object_name = 'posts'
 
-    context = {
-        'posts': posts,
-        'menu': menu,
-        'title': 'Главная страница',
-        'cat_selected' : '0',
-    }
-    return render(request, 'nur/index.html', context=context)
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['menu'] = menu
+        context['title']= 'Главная страница'
+        context['cat_selected'] = 0
+        return context
+
+    def get_queryset(self):
+        return Nur.objects.filter(is_published=True)
+
+# def index(request):
+#     posts = Nur.objects.all()
+#
+#     context = {
+#         'posts': posts,
+#         'menu': menu,
+#         'title': 'Главная страница',
+#         'cat_selected' : '0',
+#     }
+#     return render(request, 'nur/index.html', context=context)
 
 def about(request):
     return render(request, 'nur/index.html', {'menu': menu, 'title': 'О сайте'})
 
-def addpage(request):
-    return HttpResponse("Добавление товара")
+class AddPage(CreateView):
+    form_class = AddPostForm
+    template_name = 'nur/addpage.html'
+    success_url = reverse_lazy('home')
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Добавление статьи'
+        context['menu'] = menu
+        return context
+
+# def addpage(request):
+#     if request.method == 'POST':
+#         form = AddPostForm(request.POST, request.FILES)
+#         if form.is_valid():
+#             # print(form.cleaned_data)
+#             form.save()
+#             return redirect('home')
+#     else:
+#         form = AddPostForm()
+#     return render(request, 'nur/addpage.html', {'form': form, 'menu': menu, 'title': 'Добавление статьи'})
 
 def contact(request):
     return  HttpResponse("Обратная связь")
@@ -35,19 +72,54 @@ def login(request):
 def pageNotFound(request, exception):
     return HttpResponseNotFound('<h1>Page Not Found</h1>')
 
-def show_post(request, post_id):
-    return HttpResponse(f"Отображение статьи с id = {post_id}")
+# def show_post(request, post_slug):
+#     post = get_object_or_404(Nur, slug=post_slug)
+#
+#     context = {
+#         'post' : post,
+#         'menu' : menu,
+#         'title' : post.title,
+#         'cat_selected' : post.cat_id,
+#     }
+#     return render(request, 'nur/post.html', context=context)
 
-def show_category(request, cat_id):
-    posts = Nur.objects.filter(cat_id=cat_id)
+class ShowPost(DetailView):
+    model = Nur
+    template_name = 'nur/post.html'
+    slug_url_kwarg = 'post_slug'
+    context_object_name = 'post'
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = context['post']
+        context['menu'] = menu
+        return context
+
+class NurCategory(ListView):
+    model = Nur
+    template_name = 'nur/index.html'
+    context_object_name = 'posts'
+    allow_empty = False
+
+    def get_queryset(self):
+        return Nur.objects.filter(cat__slug=self.kwargs['cat_slug'], is_published=True)
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Категория - ' + str(context['posts'][0].cat)
+        context['menu'] = menu
+        context['cat_selected'] = context['posts'][0].cat_id
+        return context
 
 
-
-    context = {
-        'posts' : posts,
-        'menu' : menu,
-        'title' : 'Отображение по рубрикам',
-        'cat_selected' : cat_id,
-    }
-
-    return render(request, 'nur/index.html', context=context)
+# def show_category(request, cat_id):
+#     posts = Nur.objects.filter(cat_id=cat_id)
+#
+#     context = {
+#         'posts' : posts,
+#         'menu' : menu,
+#         'title' : 'Отображение по рубрикам',
+#         'cat_selected' : cat_id,
+#     }
+#
+#     return render(request, 'nur/index.html', context=context)
