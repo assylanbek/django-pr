@@ -1,28 +1,25 @@
+from django.contrib.auth import logout, login
+from django.contrib.auth.views import LoginView
+from django.core.paginator import Paginator
 from django.http import HttpResponse, HttpResponseNotFound, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .forms import *
 from .models import *
+from .utils import *
 
-menu = [{'title': "О сайте", 'url_name': 'about'},
-        {'title': "Добавить статью", 'url_name': 'add_page'},
-        {'title': "Обратная связь", 'url_name': 'contact'},
-        {'title': "Войти", 'url_name': 'login'}
-]
-
-class NurHome(ListView):
+class NurHome(DataMixin, ListView):
     model = Nur
     template_name = 'nur/index.html'
     context_object_name = 'posts'
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['menu'] = menu
-        context['title']= 'Главная страница'
-        context['cat_selected'] = 0
-        return context
+        c_def = self.get_user_context(title="Главная страница")
+        return dict(list(context.items()) + list(c_def.items()))
 
     def get_queryset(self):
         return Nur.objects.filter(is_published=True)
@@ -39,18 +36,24 @@ class NurHome(ListView):
 #     return render(request, 'nur/index.html', context=context)
 
 def about(request):
-    return render(request, 'nur/index.html', {'menu': menu, 'title': 'О сайте'})
+    contact_list = Nur.objects.all()
+    paginator = Paginator(contact_list, 3)
 
-class AddPage(CreateView):
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'nur/about.html', {'page_obj': page_obj, 'menu': menu, 'title': 'О сайте'})
+
+class AddPage(LoginRequiredMixin, DataMixin, CreateView):
     form_class = AddPostForm
     template_name = 'nur/addpage.html'
     success_url = reverse_lazy('home')
+    login_url = reverse_lazy('home')
+    raise_exception = True
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Добавление статьи'
-        context['menu'] = menu
-        return context
+        c_def = self.get_user_context(title="Добавление статьи")
+        return dict(list(context.items()) + list(c_def.items()))
 
 # def addpage(request):
 #     if request.method == 'POST':
@@ -66,8 +69,8 @@ class AddPage(CreateView):
 def contact(request):
     return  HttpResponse("Обратная связь")
 
-def login(request):
-    return HttpResponse("Авторизация")
+# def login(request):
+#     return HttpResponse("Авторизация")
 
 def pageNotFound(request, exception):
     return HttpResponseNotFound('<h1>Page Not Found</h1>')
@@ -83,7 +86,7 @@ def pageNotFound(request, exception):
 #     }
 #     return render(request, 'nur/post.html', context=context)
 
-class ShowPost(DetailView):
+class ShowPost(DataMixin, DetailView):
     model = Nur
     template_name = 'nur/post.html'
     slug_url_kwarg = 'post_slug'
@@ -91,11 +94,10 @@ class ShowPost(DetailView):
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = context['post']
-        context['menu'] = menu
-        return context
+        c_def = self.get_user_context(title=context['post'])
+        return dict(list(context.items()) + list(c_def.items()))
 
-class NurCategory(ListView):
+class NurCategory(DataMixin, ListView):
     model = Nur
     template_name = 'nur/index.html'
     context_object_name = 'posts'
@@ -106,10 +108,9 @@ class NurCategory(ListView):
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Категория - ' + str(context['posts'][0].cat)
-        context['menu'] = menu
-        context['cat_selected'] = context['posts'][0].cat_id
-        return context
+        c_def = self.get_user_context(title='Категория - ' + str(context['posts'][0].cat),
+                                      cat_selected=context['posts'][0].cat_id)
+        return dict(list(context.items()) + list(c_def.items()))
 
 
 # def show_category(request, cat_id):
@@ -123,3 +124,34 @@ class NurCategory(ListView):
 #     }
 #
 #     return render(request, 'nur/index.html', context=context)
+
+class RegisterUser(DataMixin, CreateView):
+    form_class = RegisterUserForm
+    template_name = 'nur/register.html'
+    success_url = reverse_lazy('login')
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title="Регистрация")
+        return dict(list(context.items()) + list(c_def.items()))
+
+    def form_valid(self, form):
+        user = form.save()
+        login(self.request, user)
+        return redirect('home')
+
+class LoginUser(DataMixin, LoginView):
+    form_class = AuthenticationForm
+    template_name = 'nur/login.html'
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title="Авторизация")
+        return dict(list(context.items()) + list(c_def.items()))
+
+    def get_success_url(self):
+        return reverse_lazy('home')
+
+def logout_user(request):
+    logout(request)
+    return redirect('login')

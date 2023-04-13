@@ -21,7 +21,7 @@ class Nur(models.Model):
     class Meta:
         verbose_name = 'Известные гаджеты'
         verbose_name_plural = 'Известные гаджеты'
-        ordering = ['time_create', 'title']
+        ordering = ['id']
 
 class Category(models.Model):
     name = models.CharField(max_length=100, db_index=True, verbose_name="Категория")
@@ -31,7 +31,7 @@ class Category(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse ('category', kwargs={'cat_slug': self.slug})
+        return reverse('category', kwargs={'cat_slug': self.slug})
 
     class Meta:
         verbose_name = 'Категория'
