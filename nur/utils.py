@@ -3,7 +3,7 @@ from .models import *
 from django.core.cache import cache
 
 menu = [{'title': "О сайте", 'url_name': 'about'},
-        {'title': "Добавить статью", 'url_name': 'add_page'},
+        {'title': "Добавить информацию", 'url_name': 'add_page'},
         {'title': "Обратная связь", 'url_name': 'contact'},
 ]
 
