@@ -5,9 +5,9 @@ from django.contrib.auth.models import User
 
 # Create your models here.
 class Nur(models.Model):
-    title = models.CharField(max_length=255, verbose_name="Имя игрока")
+    title = models.CharField(max_length=255, verbose_name="Название страны")
     slug = models.SlugField(max_length=255, unique=True, db_index=True, verbose_name="URL")
-    content = models.TextField(blank=True, verbose_name="О футболисте")
+    content = models.TextField(blank=True, verbose_name="О стране")
     photo = models.ImageField(upload_to="photos/%Y/%m/%d/", verbose_name="Фото")
     time_create = models.DateTimeField(auto_now_add=True, verbose_name="Время создания")
     time_update = models.DateTimeField(auto_now=True, verbose_name="Время обновления")
@@ -22,8 +22,8 @@ class Nur(models.Model):
         return reverse ('post', kwargs={'post_slug': self.slug})
 
     class Meta:
-        verbose_name = 'Известные футболисты'
-        verbose_name_plural = 'Известные футболисты'
+        verbose_name = 'Страны мира'
+        verbose_name_plural = 'Страны мира'
         ordering = ['id']
 
 class Category(models.Model):

@@ -29,5 +29,5 @@ class CategoryAdmin(admin.ModelAdmin):
 admin.site.register(Nur)
 admin.site.register(Category, CategoryAdmin)
 
-admin.site.site_title = 'Админ-панель сайта Debut'
-admin.site.site_header = 'Админ-панель сайта Debut 2'
+admin.site.site_title = 'Админ-панель сайта'
+admin.site.site_header = 'Админ-панель сайта 2'
